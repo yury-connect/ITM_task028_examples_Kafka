@@ -1,46 +1,65 @@
 version: '3.8'
 
 services:
-  # Описываем приложение/ BackEnd
+  # 🟩 Spring Boot приложение
   app:
-    image: kafka_demo
-    container_name: kafka_demo
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: kafka_demo
+    image: kafka_demo
     ports:
-      - "8080:8080"
+#      - "8080:8080"
+#      - "8082:8080"
+      - "9091:8080"
     depends_on:
       - db
       - kafka
-    # Устанавливаем переменные окружения внутри этого контейнера
     environment:
-#      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/users
-      - SPRING_DATASOURCE_URL=${DB_URL}
-#      - SPRING_DATASOURCE_USERNAME=user
-      - SPRING_DATASOURCE_USERNAME=${DB_USER}
-#      - SPRING_DATASOURCE_PASSWORD=1234
-      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
-#      - SPRING_ELASTICSEARCH_URIS=elasticsearch:9200
-      - SPRING_ELASTICSEARCH_URIS=${ELASTICSEARCH_URL
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/users
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: 1234
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
 
-  # Описываем базу
+  # 🟦 PostgreSQL
   db:
     image: postgres:16.0
     container_name: postgres_db
+    ports:
+      - "5432:5432"  # <-- Порт проброшен на хост (localhost:5432)
     environment:
       POSTGRES_DB: users
       POSTGRES_USER: user
       POSTGRES_PASSWORD: 1234
-    ports:
-      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
 
-  # Описываем Kafka
-#  kafka:
-#    image: confluentinc/cp-kafka:7.2.1
-#    container_name: kafka
-#    ports:
-#      - "9092:9092"
-#    environment:
-#      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-#      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+
+  # 🟨 Zookeeper
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.2.1
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  # 🟧 Kafka
+  kafka:
+    image: confluentinc/cp-kafka:7.2.1
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#      KAFKA_LOG4J_ROOT_LOGLEVEL: "INFO"   # вместо TRACE
+
+      KAFKA_LOG4J_ROOT_LOGLEVEL: "DEBUG"   # вместо TRACE
+      KAFKA_CFG_AUTO_LEADER_REBALANCE_ENABLE: "false" # Auto‑rebalance лидеров кафки
