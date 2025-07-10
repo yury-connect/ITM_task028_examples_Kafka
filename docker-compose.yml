@@ -9,57 +9,83 @@ services:
     container_name: kafka_demo
     image: kafka_demo
     ports:
-#      - "8080:8080"
-#      - "8082:8080"
-      - "9091:8080"
+      - "8080:8080"  # Стандартизируем порт
     depends_on:
-      - db
-      - kafka
+      db:
+        condition: service_healthy  # Ожидаем готовности БД
+      kafka:
+        condition: service_healthy  # Ожидаем готовности Kafka
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/users
       SPRING_DATASOURCE_USERNAME: user
       SPRING_DATASOURCE_PASSWORD: 1234
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75"  # Оптимизация памяти
+    healthcheck:  # Добавляем healthcheck для Spring Boot Actuator
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
 
   # 🟦 PostgreSQL
   db:
-    image: postgres:16.0
+    image: postgres:16.0-alpine  # Используем облегченный образ
     container_name: postgres_db
     ports:
-      - "5432:5432"  # <-- Порт проброшен на хост (localhost:5432)
+      - "5432:5432"
     environment:
       POSTGRES_DB: users
       POSTGRES_USER: user
       POSTGRES_PASSWORD: 1234
     volumes:
       - pgdata:/var/lib/postgresql/data
-    restart: always
-
+    healthcheck:  # Healthcheck для проверки готовности БД
+      test: ["CMD-SHELL", "pg_isready -U user -d users"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   # 🟨 Zookeeper
   zookeeper:
     image: confluentinc/cp-zookeeper:7.2.1
     container_name: zookeeper
-    ports:
-      - "2181:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:  # Healthcheck для Zookeeper
+      test: ["CMD", "zkServer.sh", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # 🟧 Kafka
   kafka:
     image: confluentinc/cp-kafka:7.2.1
     container_name: kafka
     ports:
-      - "9092:9092"
+      - "9092:9092"    # Для внутренней сети Docker
+      - "29092:29092"  # Добавляем порт для доступа с хоста
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy  # Ожидаем готовности Zookeeper
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      # Настраиваем листенеры для внутреннего и внешнего доступа:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-#      KAFKA_LOG4J_ROOT_LOGLEVEL: "INFO"   # вместо TRACE
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"  # Автосоздание топиков (при первом обращении)
+      KAFKA_LOG4J_ROOT_LOGLEVEL: "INFO"  # Снижаем уровень логов для production
+      # Отключаем автоматическую ребалансировку (по вашему требованию):
+      KAFKA_CFG_AUTO_LEADER_REBALANCE_ENABLE: "false"
+    healthcheck:  # Healthcheck для Kafka
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
 
-      KAFKA_LOG4J_ROOT_LOGLEVEL: "DEBUG"   # вместо TRACE
-      KAFKA_CFG_AUTO_LEADER_REBALANCE_ENABLE: "false" # Auto‑rebalance лидеров кафки
+volumes:
+  pgdata:  # Том для постоянного хранения данных PostgreSQL

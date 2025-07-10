@@ -1,12 +1,22 @@
 spring:
   datasource:
-    url: jdbc:postgresql://postgres_db:5432//users
+    url: jdbc:postgresql://postgres_db:5432/users  # Убрал лишний слэш
     username: user
     password: 1234
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          lob:
+            non_contextual_creation: true
 
   kafka:
     bootstrap-servers: kafka:9092
@@ -17,9 +27,32 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false  # Для лучшей совместимости
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        acks: all  # Гарантированная доставка
+        retries: 3
+
+  application:
+    name: kafka-demo-service
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics  # Исправлена опечатка, добавлены metrics
+  endpoint:
+    health:
+      show-details: always
+    info:
+      env:
+        enabled: true
 
 server:
   port: 8080
+  address: 0.0.0.0  # Важно для доступа извне контейнера
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
