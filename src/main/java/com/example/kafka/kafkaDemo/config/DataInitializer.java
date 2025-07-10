@@ -1,6 +1,6 @@
-package com.example.kafka.kafka_demo.config;
+package com.example.kafka.kafkaDemo.config;
 
-import com.example.kafka.kafka_demo.util.FakeUserGenerator;
+import com.example.kafka.kafkaDemo.util.FakeUserGenerator;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;

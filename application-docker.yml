@@ -1,0 +1,11 @@
+# application-docker.yml  (для Docker / используется в контейнере)
+spring:
+    profiles: docker    # ← обязательно!
+
+    datasource:
+        url: jdbc:postgresql://db:5432/users
+        username: user
+        password: 1234
+
+    kafka:
+        bootstrap-servers: kafka:9092

@@ -1,4 +1,4 @@
-package com.example.kafka.kafka_demo.model;
+package com.example.kafka.kafkaDemo.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

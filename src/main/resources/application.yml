@@ -1,8 +1,11 @@
 spring:
+  profiles:
+    active: default
+
   datasource:
-    url: jdbc:postgresql://postgres_db:5432/users  # Убрал лишний слэш
-    username: user
-    password: 1234
+#    url: jdbc:postgresql://postgres_db:5432/users
+#    username: user
+#    password: 1234
     hikari:
       connection-timeout: 30000
       maximum-pool-size: 10

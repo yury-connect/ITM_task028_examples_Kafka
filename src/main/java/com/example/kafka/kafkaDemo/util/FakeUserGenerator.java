@@ -1,7 +1,7 @@
-package com.example.kafka.kafka_demo.util;
+package com.example.kafka.kafkaDemo.util;
 
-import com.example.kafka.kafka_demo.model.User;
-import com.example.kafka.kafka_demo.repository.UserRepository;
+import com.example.kafka.kafkaDemo.model.User;
+import com.example.kafka.kafkaDemo.repository.UserRepository;
 import com.github.javafaker.Faker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

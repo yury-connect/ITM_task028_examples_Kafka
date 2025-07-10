@@ -1,7 +1,11 @@
+# application-local.yml  (для IDE)
 spring:
+  profiles: local
+
   datasource:
     url: jdbc:postgresql://localhost:5432/users
     username: user
     password: 1234
+
   kafka:
     bootstrap-servers: localhost:29092  # Используем внешний порт Kafka
